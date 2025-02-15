@@ -15,10 +15,19 @@ builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/api/auth/login"; // Redirect to login if unauthorized
+    options.AccessDeniedPath = "/api/auth/access-denied";
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(60); // Session timeout
+});
+
 // Add services to the container.
 
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
+
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
