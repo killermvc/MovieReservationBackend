@@ -9,7 +9,7 @@ public class Movie
 	public string Description { get; set; } = string.Empty;
 	public int GenreId { get; set; }
 	public Genre? Genre { get; set; }
-	public string PosterUrl = string.Empty;
+	public string PosterUrl {get; set;} = string.Empty;
 	public int DurationInMinutes {get; set;}
 	public decimal TicketPrice { get; set; }
 	public DateTime ReleaseDate { get; set; }

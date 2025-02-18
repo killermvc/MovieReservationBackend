@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MovieReservation.Models;
 
-public class AppDbContext : IdentityDbContext<User>
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<User>(options)
 {
 
 	public DbSet<Movie> Movies { get; set; } = null!;
@@ -14,9 +14,4 @@ public class AppDbContext : IdentityDbContext<User>
 	public DbSet<Seat> Seats { get; set; } = null!;
 	public DbSet<Genre> Genres { get; set; } = null!;
 	public DbSet<Showtime> Showtime { get; set; } = null!;
-
-    public AppDbContext(DbContextOptions<AppDbContext> options)
-        : base(options)
-    {
-    }
 }

@@ -37,8 +37,9 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var userManager = services.GetRequiredService<UserManager<User>>();
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+	var db = services.GetRequiredService<AppDbContext>();
 
-    SeedData.InitializeAsync(userManager, roleManager, app.Configuration).Wait();
+    SeedData.InitializeAsync(db ,userManager, roleManager, app.Configuration).Wait();
 }
 
 // Configure the HTTP request pipeline.
