@@ -50,7 +50,7 @@ public class MoviesController(AppDbContext _db) : ControllerBase
 
 	[HttpPost]
 	[Authorize(Roles = "Admin")]
-	public async Task<ActionResult<MovieDTO>> Create(MovieCreateDTO createDTO)
+	public async Task<ActionResult<MovieDTO>> Create([FromBody] MovieCreateDTO createDTO)
 	{
 		var movie = createDTO.ToMovie();
 		await _db.Movies.AddAsync(movie);
@@ -61,7 +61,7 @@ public class MoviesController(AppDbContext _db) : ControllerBase
 
 	[HttpPut("{id}")]
 	[Authorize(Roles = "Admin")]
-	public async Task<ActionResult> Update(int id, MovieUpdateDTO updateDTO)
+	public async Task<ActionResult> Update(int id, [FromBody] MovieUpdateDTO updateDTO)
 	{
 		var movie = await _db.Movies.FindAsync(id);
 		if (movie == null)
