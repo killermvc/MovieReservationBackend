@@ -11,4 +11,5 @@ public class Reservation
 	public Seat? Seat { get; set; }
 	public string UserId { get; set;} = string.Empty;
 	public User? User { get; set; }
+	public bool IsActive { get; set; } = true;
 }

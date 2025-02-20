@@ -7,6 +7,6 @@ public class Seat
 	public bool IsAvailable {get; set;}
 	public int CinemaHallId {get; set;}
 	public CinemaHall? CinemaHall {get; set;}
-	public ICollection<Reservation>? Reservations {get; set;} = [];
-	public ICollection<Showtime>? Showtimes {get; set;} = [];
+	public int ShowtimeId {get; set;}
+	public Showtime? Showtime {get; set;}
 }
