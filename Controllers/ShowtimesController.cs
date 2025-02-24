@@ -18,16 +18,33 @@ public class ShowtimesController(AppDbContext _db) : ControllerBase
 	}
 
 	[HttpGet("movie/{movieId}")]
-	public IActionResult GetAllForMovie(int movieId)
+	public ActionResult<IEnumerable<ShowtimeDTO>> GetAllForMovie(int movieId)
 	{
-		var showtimes = _db.Showtimes.Where(s => s.MovieId == movieId).ToList();
+		var showtimes = _db.Showtimes
+			.Where(s => s.MovieId == movieId && s.StartTime > DateTime.Now)
+			.ToList();
 		return Ok(showtimes.Select(s => new ShowtimeDTO(s)));
 	}
 
 	[HttpGet("day/{date}")]
-	public IActionResult GetAllForDay(DateTime date)
+	public ActionResult<IEnumerable<ShowtimeDTO>> GetAllForDay(DateTime date)
 	{
-		var showtimes = _db.Showtimes.Where(s => s.StartTime.Date == date.Date).ToList();
+		if(date < DateTime.Now)
+		{
+			return BadRequest("Date should be in the future");
+		}
+		var showtimes = _db.Showtimes
+			.Where(s => s.StartTime.Date == date.Date)
+			.ToList();
+		return Ok(showtimes.Select(s => new ShowtimeDTO(s)));
+	}
+
+	[HttpGet("movie/{movieId}/day/{date}")]
+	public ActionResult<IEnumerable<ShowtimeDTO>> GetAllForMovieForDay(int movieId, DateTime date)
+	{
+		var showtimes = _db.Showtimes
+			.Where(s =>	s.MovieId == movieId && s.StartTime.Date == date.Date)
+			.ToList();
 		return Ok(showtimes.Select(s => new ShowtimeDTO(s)));
 	}
 
