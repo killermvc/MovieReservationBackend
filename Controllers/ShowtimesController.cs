@@ -75,18 +75,41 @@ public class ShowtimesController(AppDbContext _db) : ControllerBase
 	[Authorize(Roles = "Admin")]
 	public async Task<IActionResult> Update(int id, [FromBody] ShowtimeUpdateDTO updateDTO)
 	{
-		var data = await _db.Showtimes.FindAsync(id);
-		if (data == null)
+		var showtime = await _db.Showtimes.FindAsync(id);
+		if (showtime == null)
 		{
 			return NotFound();
 		}
 
-		data.StartTime = updateDTO.StartTime;
-		data.CinemaHallId = updateDTO.CinemaHallId;
-		data.MovieId = updateDTO.MovieId;
+		var oldStartTime = showtime.StartTime;
+		if (Math.Abs((updateDTO.StartTime - oldStartTime).TotalMinutes) > 15)
+		{
+			return BadRequest("StartTime should not be changed by more than 15 minutes");
+		}
+		if(updateDTO.StartTime < DateTime.Now)
+		{
+			return BadRequest("StartTime should be in the future");
+		}
+
+		var oldCinemaHall = showtime.CinemaHallId;
+		if (showtime.HasReservations && oldCinemaHall != updateDTO.CinemaHallId)
+		{
+			return BadRequest("Cannot update showtime with reservations");
+		}
+
+		var oldMovieId = showtime.MovieId;
+		if (showtime.HasReservations && oldMovieId != updateDTO.MovieId)
+		{
+			return BadRequest("Cannot update showtime with reservations");
+		}
+
+		showtime.StartTime = updateDTO.StartTime;
+		showtime.CinemaHallId = updateDTO.CinemaHallId;
+		showtime.MovieId = updateDTO.MovieId;
+
 
 		await _db.SaveChangesAsync();
-		return Ok(new ShowtimeDTO(data));
+		return Ok(new ShowtimeDTO(showtime));
 	}
 
 	[HttpDelete("{id}")]
