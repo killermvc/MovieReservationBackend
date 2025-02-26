@@ -79,12 +79,12 @@ public class ShowtimesController(AppDbContext _db) : ControllerBase
 		}
 		var showtime = createDTO.ToShowtime();
 		await _db.Showtimes.AddAsync(showtime);
-		await _db.SaveChangesAsync();
 
 		var cinemaHall = await _db.CinemaHalls.FindAsync(showtime.CinemaHallId);
 		showtime.CinemaHall = cinemaHall;
 		showtime.InitializeSeats();
 
+		await _db.SaveChangesAsync();
 		return CreatedAtAction(nameof(GetById), new { id = showtime.Id }, new ShowtimeDTO(showtime));
 	}
 
