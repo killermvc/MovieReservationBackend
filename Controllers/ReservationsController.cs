@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+
 
 using MovieReservation.Models;
 
@@ -21,8 +22,10 @@ public class ReservationsController(AppDbContext _db) : ControllerBase
 			return NotFound();
 		}
 
-		if (User.Identity is not null
-			&& reservation.UserId != User.Identity.Name
+		var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+		if (userId is not null
+			&& reservation.UserId != userId
 			&& !User.IsInRole("Admin"))
 		{
 			return Forbid("Not authorized");
@@ -35,11 +38,11 @@ public class ReservationsController(AppDbContext _db) : ControllerBase
 	[Authorize]
 	public async Task<ActionResult<IEnumerable<Reservation>>> GetAll(int pageNumber = 1, int pageSize = 10, bool activeOnly = true)
 	{
-		if(User.Identity is null)
+		var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+		if(userId == null)
 		{
-			return Unauthorized();
+			return BadRequest("User not found");
 		}
-		var userId = User.Identity.Name;
 
 		IQueryable<Reservation> reservations;
 
@@ -71,12 +74,10 @@ public class ReservationsController(AppDbContext _db) : ControllerBase
 	[Authorize]
 	public async Task<IActionResult> Create([FromBody] ReservationCreateDTO createDTO)
 	{
-		if (User.Identity is null || User.Identity.Name == null)
-		{
-			return Unauthorized();
-		}
+		var showtime = await _db.Showtimes
+			.Include(s => s.Seats)
+			.FirstOrDefaultAsync(s => s.Id == createDTO.ShowtimeId);
 
-		var showtime = await _db.Showtimes.FindAsync(createDTO.ShowtimeId);
 		if (showtime == null)
 		{
 			return BadRequest("Invalid ShowtimeId");
@@ -86,10 +87,12 @@ public class ReservationsController(AppDbContext _db) : ControllerBase
 
 		foreach(var s in createDTO.Seats)
 		{
-			var requestedSeat = await _db.Seats.FirstOrDefaultAsync(seat => seat.Id == s);
+			var requestedSeat = await _db.Seats.FirstOrDefaultAsync(seat =>
+				seat.Number == s
+				&& seat.ShowtimeId == createDTO.ShowtimeId);
 			if(requestedSeat == null)
 			{
-				return BadRequest($"Seat with Id {s} does not exist for showtime {createDTO.ShowtimeId}");
+				return BadRequest($"[{_db.Seats.Count()}]Seat with Id {s} does not exist for showtime {createDTO.ShowtimeId}");
 			}
 
 			if(!requestedSeat.IsAvailable)
@@ -100,9 +103,15 @@ public class ReservationsController(AppDbContext _db) : ControllerBase
 			seats.Add(requestedSeat);
 		}
 
+		var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+		if(userId == null)
+		{
+			return Unauthorized();
+		}
+
 		var reservation = new Reservation
 		{
-			UserId = User.Identity.Name,
+			UserId = userId,
 			ShowtimeId = createDTO.ShowtimeId,
 			Seats = seats,
 			IsActive = true
@@ -111,7 +120,10 @@ public class ReservationsController(AppDbContext _db) : ControllerBase
 		await _db.Reservations.AddAsync(reservation);
 		await _db.SaveChangesAsync();
 
-		return CreatedAtAction(nameof(GetAll), new { id = reservation.Id }, reservation);
+		return CreatedAtAction(
+			nameof(GetAll),
+			new { id = reservation.Id },
+			new ReservationDTO(reservation));
 	}
 
 	[HttpDelete("{id}")]
@@ -127,8 +139,9 @@ public class ReservationsController(AppDbContext _db) : ControllerBase
 			return NotFound();
 		}
 
-		if (User.Identity is not null
-			&& reservation.UserId != User.Identity.Name
+		var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+		if (userId is not null
+			&& reservation.UserId != userId
 			&& !User.IsInRole("Admin"))
 		{
 			return Forbid("Not authorized");
@@ -156,4 +169,22 @@ public class ReservationCreateDTO
     public int ShowtimeId { get; set; }
     public IEnumerable<int> Seats { get; set; } = [];
 
+}
+
+public class ReservationDTO
+{
+    public int Id { get; set; }
+    public string UserId { get; set; }
+    public int ShowtimeId { get; set; }
+    public string Seats { get; set; }
+    public bool IsActive { get; set; }
+
+	public ReservationDTO(Reservation reservation)
+	{
+		Id = reservation.Id;
+		UserId = reservation.UserId;
+		ShowtimeId = reservation.ShowtimeId;
+		Seats = string.Join(",", reservation.Seats.Select(s => s.Number));
+		IsActive = reservation.IsActive;
+	}
 }
